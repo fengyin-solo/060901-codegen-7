@@ -41,6 +41,22 @@ export interface TopicTemplate {
   questions: string[]
 }
 
+export interface SceneTopic {
+  type: TopicType
+  content: string
+}
+
+export interface Scene {
+  id: string
+  name: string
+  emoji: string
+  description: string
+  gradient: string
+  topics: SceneTopic[]
+}
+
+export type SceneId = 'dinner' | 'camping' | 'birthday' | 'roadTrip' | 'date' | 'reunion'
+
 export const TOPIC_COLORS: Record<TopicType, string> = {
   trouble: '#FF6B6B',
   music: '#FFD93D',

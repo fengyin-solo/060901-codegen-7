@@ -2,6 +2,7 @@ import type { TopicTemplate, TopicType } from '@/types'
 import { defaultTopics } from './default'
 import { deepTopics } from './deep'
 import { sillyTopics } from './silly'
+import { scenes, getSceneById, getSceneTopics } from './scenes'
 
 export const allTopics: TopicTemplate[] = [
   ...defaultTopics,
@@ -27,3 +28,4 @@ export function getRandomBackupQuestion(): string {
 export * from './default'
 export * from './deep'
 export * from './silly'
+export { scenes, getSceneById, getSceneTopics }

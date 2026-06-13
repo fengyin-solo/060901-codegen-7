@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRoom } from '@/composables/useRoom'
 import { useExpire } from '@/composables/useExpire'
 import RoomCard from '@/components/RoomCard.vue'
 import { copyToClipboard } from '@/utils/helpers'
+import { scenes } from '@/topics'
+import type { Scene } from '@/types'
+import { TOPIC_COLORS } from '@/types'
 
 const router = useRouter()
 const { activeRooms, createRoom, joinRoomByCode, error, loadRooms } = useRoom()
@@ -17,6 +20,12 @@ const hostName = ref('')
 const joinCode = ref('')
 const joinName = ref('')
 const copySuccess = ref(false)
+const selectedSceneId = ref<string | null>(null)
+
+const selectedScene = computed((): Scene | undefined => {
+  if (!selectedSceneId.value) return undefined
+  return scenes.find(s => s.id === selectedSceneId.value)
+})
 
 onMounted(() => {
   loadRooms()
@@ -26,7 +35,11 @@ onMounted(() => {
 const handleCreateRoom = () => {
   if (!roomName.value.trim() || !hostName.value.trim()) return
   
-  const room = createRoom(roomName.value.trim(), hostName.value.trim())
+  const room = createRoom(
+    roomName.value.trim(), 
+    hostName.value.trim(),
+    selectedSceneId.value || undefined
+  )
   
   copyToClipboard(room.code).then(() => {
     copySuccess.value = true
@@ -37,6 +50,10 @@ const handleCreateRoom = () => {
   
   showCreateModal.value = false
   router.push(`/room/${room.id}`)
+}
+
+const selectScene = (sceneId: string) => {
+  selectedSceneId.value = selectedSceneId.value === sceneId ? null : sceneId
 }
 
 const handleJoinRoom = () => {
@@ -61,6 +78,7 @@ const closeModals = () => {
   hostName.value = ''
   joinCode.value = ''
   joinName.value = ''
+  selectedSceneId.value = null
 }
 </script>
 
@@ -156,7 +174,7 @@ const closeModals = () => {
             ✨ 创建新房间
           </h2>
           
-          <div class="space-y-4">
+          <div class="space-y-5">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">
                 房间名称
@@ -182,6 +200,69 @@ const closeModals = () => {
                 @keyup.enter="handleCreateRoom"
               />
             </div>
+            
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <label class="block text-sm font-medium text-gray-700">
+                  🎨 场景灵感包
+                </label>
+                <span v-if="selectedScene" class="text-xs text-purple-600 font-medium">
+                  已选：{{ selectedScene.name }} · {{ selectedScene.topics.length }} 个话题
+                </span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  v-for="scene in scenes"
+                  :key="scene.id"
+                  type="button"
+                  class="p-3 rounded-xl border-2 transition-all text-left"
+                  :class="[
+                    selectedSceneId === scene.id 
+                      ? `border-transparent bg-gradient-to-r ${scene.gradient} text-white shadow-md` 
+                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                  ]"
+                  @click="selectScene(scene.id)"
+                >
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xl">{{ scene.emoji }}</span>
+                    <span 
+                      class="text-sm font-medium"
+                      :class="selectedSceneId === scene.id ? 'text-white' : 'text-gray-800'"
+                    >
+                      {{ scene.name }}
+                    </span>
+                  </div>
+                  <p 
+                    class="text-xs line-clamp-2"
+                    :class="selectedSceneId === scene.id ? 'text-white/80' : 'text-gray-500'"
+                  >
+                    {{ scene.description }}
+                  </p>
+                </button>
+              </div>
+              <div v-if="selectedScene" class="mt-3 p-3 bg-purple-50 rounded-xl">
+                <div class="flex items-center gap-2 text-xs text-purple-700 mb-2">
+                  <span>📝</span>
+                  <span class="font-medium">将自动带入以下话题：</span>
+                </div>
+                <div class="space-y-1 max-h-24 overflow-y-auto">
+                  <div 
+                    v-for="(topic, index) in selectedScene.topics.slice(0, 3)" 
+                    :key="index"
+                    class="text-xs text-gray-600 flex items-center gap-2"
+                  >
+                    <span class="w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px] flex-shrink-0"
+                          :style="{ backgroundColor: TOPIC_COLORS[topic.type] }">
+                      {{ index + 1 }}
+                    </span>
+                    <span class="truncate">{{ topic.content }}</span>
+                  </div>
+                  <div v-if="selectedScene.topics.length > 3" class="text-xs text-gray-400">
+                    还有 {{ selectedScene.topics.length - 3 }} 个话题...
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div v-if="error" class="mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
@@ -200,7 +281,7 @@ const closeModals = () => {
               :disabled="!roomName.trim() || !hostName.trim()"
               @click="handleCreateRoom"
             >
-              创建
+              {{ selectedScene ? '创建并带入话题' : '创建' }}
             </button>
           </div>
         </div>

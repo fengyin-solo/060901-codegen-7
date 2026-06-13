@@ -8,6 +8,7 @@ import {
   generateId, generateRoomCode, addDays, getRandomItem, shuffleArray 
 } from '@/utils/helpers'
 import { AVATAR_EMOJIS } from '@/types'
+import { getSceneTopics } from '@/topics'
 
 export function useRoom() {
   const rooms = ref<Room[]>([])
@@ -19,7 +20,7 @@ export function useRoom() {
     rooms.value = getRooms()
   }
 
-  const createRoom = (name: string, hostName: string): Room => {
+  const createRoom = (name: string, hostName: string, sceneId?: string): Room => {
     const now = new Date()
     const expiresAt = addDays(now, 7)
     
@@ -45,6 +46,25 @@ export function useRoom() {
     }
     
     room.members.forEach(m => m.roomId = room.id)
+    
+    if (sceneId) {
+      const sceneTopics = getSceneTopics(sceneId)
+      sceneTopics.forEach((sceneTopic, index) => {
+        const topic: Topic = {
+          id: generateId(),
+          roomId: room.id,
+          content: sceneTopic.content,
+          type: sceneTopic.type,
+          author: '系统灵感',
+          isAnonymous: true,
+          isFlipped: false,
+          createdAt: new Date(now.getTime() + index).toISOString(),
+          color: TOPIC_COLORS[sceneTopic.type]
+        }
+        room.topics.push(topic)
+      })
+    }
+    
     saveRoom(room)
     loadRooms()
     return room
